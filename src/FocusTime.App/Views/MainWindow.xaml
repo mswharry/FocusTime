@@ -1,0 +1,239 @@
+<Window x:Class="FocusTime.App.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        xmlns:views="clr-namespace:FocusTime.App.Views"
+        Title="Focus Time" Height="800" Width="1400"
+        WindowStartupLocation="CenterScreen">
+    
+    <Grid Background="{StaticResource BackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- Top bar -->
+            <RowDefinition Height="*"/>    <!-- Main content -->
+            <RowDefinition Height="Auto"/> <!-- Status bar -->
+        </Grid.RowDefinitions>
+
+        <!-- Top Control Bar -->
+        <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" 
+                BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Session Preset -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Session:" VerticalAlignment="Center" Margin="0,0,8,0" FontWeight="SemiBold"/>
+                    <ComboBox x:Name="PresetComboBox" 
+                              ItemsSource="{Binding SessionPresets}"
+                              SelectedIndex="{Binding SelectedPresetIndex}"
+                              Width="100" IsEnabled="{Binding IsSessionActive, Converter={StaticResource InverseBoolConverter}}"/>
+                </StackPanel>
+
+                <!-- Start/Pause/Resume/Reset Buttons -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="12,0">
+                    <Button Content="Start" Command="{Binding StartCommand}" 
+                            Background="{StaticResource AccentBrush}" Foreground="White"
+                            Visibility="{Binding IsSessionActive, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                    <Button Content="Pause" Command="{Binding PauseCommand}"
+                            Visibility="{Binding IsSessionActive, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                    <Button Content="Resume" Command="{Binding ResumeCommand}"/>
+                    <Button Content="🔄 Reset" Command="{Binding ResetCommand}" 
+                            Background="#FF9800" Foreground="White"
+                            Visibility="{Binding IsSessionActive, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                </StackPanel>
+
+                <!-- Phase and Timer Display -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding PhaseDisplay}" FontSize="20" FontWeight="Bold" 
+                               Foreground="{StaticResource PrimaryBrush}" Margin="0,0,20,0"/>
+                    <TextBlock Text="{Binding TimerDisplay}" FontSize="32" FontWeight="Bold" 
+                               Foreground="{StaticResource TextPrimaryBrush}" FontFamily="Consolas"/>
+                </StackPanel>
+
+                <!-- Skip Break Button -->
+                <Button Grid.Column="3" Content="⏭ Skip Break" Command="{Binding SkipBreakCommand}"
+                        Background="{StaticResource DangerBrush}" Foreground="White"/>
+            </Grid>
+        </Border>
+
+        <!-- Main Content Area -->
+        <Grid Grid.Row="1" Margin="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="280"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left Panel: Tasks -->
+            <Border Grid.Column="0" Background="{StaticResource SurfaceBrush}" 
+                    BorderBrush="#E0E0E0" BorderThickness="0,0,1,0" Padding="12">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Tasks Header -->
+                    <TextBlock Grid.Row="0" Text="SESSION TASKS" FontWeight="Bold" 
+                               FontSize="14" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,12"/>
+
+                    <!-- Tasks List -->
+                    <ListBox Grid.Row="1" x:Name="TasksListBox"
+                             ItemsSource="{Binding SessionTasks}" 
+                             SelectedItem="{Binding SelectedTask}"
+                             Background="Transparent" BorderThickness="0" ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="4,8" Margin="0,2">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        
+                                        <!-- Title and Priority -->
+                                        <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                            <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" MaxWidth="180"/>
+                                            <TextBlock Text="{Binding Priority}" FontSize="10" Margin="4,0,0,0" 
+                                                       Foreground="White" Background="#2196F3" Padding="3,1" VerticalAlignment="Top"/>
+                                        </StackPanel>
+                                        
+                                        <!-- Status and Estimate -->
+                                        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,4,0,0">
+                                            <TextBlock Text="{Binding Status}" FontSize="11" FontWeight="Medium"
+                                                       Foreground="{StaticResource AccentBrush}"/>
+                                            <TextBlock Text="{Binding EstimateMinutes, StringFormat=' • {0} min'}" FontSize="11" 
+                                                       Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        </StackPanel>
+                                        
+                                        <!-- Tags -->
+                                        <ItemsControl Grid.Row="2" ItemsSource="{Binding Tags}" Margin="0,4,0,0">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Background="#F5F5F5" CornerRadius="2" Padding="4,2" Margin="0,0,4,2">
+                                                        <TextBlock Text="{Binding}" FontSize="9" Foreground="#666"/>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <!-- Task Actions -->
+                    <StackPanel Grid.Row="2" Margin="0,12,0,0">
+                        <Button Content="+ Add Task" Command="{Binding AddTaskCommand}" 
+                                HorizontalAlignment="Stretch" Background="{StaticResource AccentBrush}" Foreground="White"/>
+                        <Grid Margin="0,8,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0" Content="✏️ Edit" Command="{Binding EditTaskCommand}" 
+                                    IsEnabled="{Binding SelectedTask, Converter={StaticResource NotNullConverter}}" Margin="0,0,4,0"/>
+                            <Button Grid.Column="1" Content="🗑️ Delete" Command="{Binding DeleteTaskCommand}"
+                                    IsEnabled="{Binding SelectedTask, Converter={StaticResource NotNullConverter}}" 
+                                    Background="{StaticResource DangerBrush}" Foreground="White" Margin="4,0,0,0"/>
+                        </Grid>
+                        <TextBlock Text="{Binding ActiveTaskTitle, StringFormat='Active: {0}'}" 
+                                   FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" 
+                                   Margin="4,8,0,0" TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <!-- Footer Buttons -->
+                    <StackPanel Grid.Row="3" Margin="0,16,0,0">
+                        <Button Content="📊 History" Command="{Binding OpenHistoryCommand}" 
+                                HorizontalAlignment="Stretch"/>
+                        <Button Content="⚙ Settings" Command="{Binding OpenSettingsCommand}" 
+                                HorizontalAlignment="Stretch"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Center Panel: Focus Browser -->
+            <Grid Grid.Column="1" Margin="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Browser Navigation Bar -->
+                <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" 
+                        BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="8">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Button Grid.Column="0" Content="⬅" x:Name="BackButton" Width="40" ToolTip="Back"/>
+                        <Button Grid.Column="1" Content="➡" x:Name="ForwardButton" Width="40" ToolTip="Forward"/>
+                        <Button Grid.Column="2" Content="↻" x:Name="RefreshButton" Width="40" ToolTip="Refresh"/>
+                        <TextBox Grid.Column="3" x:Name="UrlTextBox" VerticalContentAlignment="Center"
+                                 KeyDown="UrlTextBox_KeyDown" Margin="4,0"/>
+                        <Button Grid.Column="4" Content="🏠" x:Name="HomeButton" Width="40" ToolTip="Home"/>
+                        <Button Grid.Column="5" Content="➕ New Tab" x:Name="NewTabButton" Click="NewTabButton_Click" 
+                                Background="{StaticResource AccentBrush}" Foreground="White" ToolTip="Open New Tab"/>
+                    </Grid>
+                </Border>
+
+                <!-- Browser Tabs -->
+                <Grid Grid.Row="1" x:Name="BrowserContainer">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <!-- Tab Headers Panel -->
+                    <StackPanel Grid.Row="0" x:Name="TabHeadersPanel" 
+                                Orientation="Horizontal" 
+                                Background="#F0F0F0" Height="35"/>
+                    
+                    <!-- Tab Content Area -->
+                    <Grid Grid.Row="1" x:Name="TabContentArea" Background="White"/>
+                </Grid>
+            </Grid>
+        </Grid>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}" 
+                BorderBrush="#E0E0E0" BorderThickness="0,1,0,0" Padding="12,6">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Text="{Binding CurrentDomain}" 
+                           FontSize="12" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="1" Text="{Binding FocusedDisplay}" 
+                           FontSize="12" Margin="12,0" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="2" Text="{Binding DistractedDisplay}" 
+                           FontSize="12" Margin="12,0" VerticalAlignment="Center"
+                           ToolTip="{Binding DistractionTooltip}"
+                           Cursor="Help"/>
+                <TextBlock Grid.Column="3" Text="{Binding StreakDisplay}" 
+                           FontSize="12" FontWeight="SemiBold" Margin="12,0" VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

@@ -1,0 +1,39 @@
+<Window x:Class="FocusTime.App.Views.HistoryWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="History and Insights" Height="600" Width="800"
+        WindowStartupLocation="CenterScreen">
+    
+    <Grid Background="{StaticResource BackgroundBrush}" Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <TextBlock Grid.Row="0" Text="HISTORY AND INSIGHTS" FontSize="24" FontWeight="Bold" 
+                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,16"/>
+
+        <!-- Days List -->
+        <ListView Grid.Row="1" ItemsSource="{Binding DayLogs}" 
+                  Background="{StaticResource SurfaceBrush}">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="Date" Width="100" DisplayMemberBinding="{Binding DateKey}"/>
+                    <GridViewColumn Header="Focused" Width="80" DisplayMemberBinding="{Binding FocusedMinutes, StringFormat={}{0}m}"/>
+                    <GridViewColumn Header="Distracted" Width="80" DisplayMemberBinding="{Binding DistractedMinutes, StringFormat={}{0}m}"/>
+                    <GridViewColumn Header="Sessions" Width="80" DisplayMemberBinding="{Binding SessionCount}"/>
+                    <GridViewColumn Header="Goal" Width="60">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding GoalAchieved, Converter={StaticResource BoolToCheckmarkConverter}}" 
+                                           HorizontalAlignment="Center"/>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Header="Top Domains" Width="300" DisplayMemberBinding="{Binding TopDomains}"/>
+                </GridView>
+            </ListView.View>
+        </ListView>
+    </Grid>
+</Window>

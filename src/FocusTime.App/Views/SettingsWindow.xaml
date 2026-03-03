@@ -1,0 +1,102 @@
+<Window x:Class="FocusTime.App.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Settings" Height="600" Width="700"
+        WindowStartupLocation="CenterScreen">
+    
+    <Grid Background="{StaticResource BackgroundBrush}" Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <TextBlock Grid.Row="0" Text="SETTINGS" FontSize="24" FontWeight="Bold" 
+                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,16"/>
+
+        <!-- Settings Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="0,0,16,0">
+                <!-- Daily Goal -->
+                <GroupBox Header="Daily Goal" Padding="12" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="Daily focus goal (minutes):" Margin="0,0,0,4"/>
+                        <TextBox Text="{Binding DailyGoalMinutes, UpdateSourceTrigger=PropertyChanged}" Width="100" HorizontalAlignment="Left"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- Distraction Thresholds -->
+                <GroupBox Header="Distraction Thresholds" Padding="12" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="Domain timeout (minutes):" Margin="0,0,0,4"/>
+                        <TextBox Text="{Binding DomainTimeoutMinutes, UpdateSourceTrigger=PropertyChanged}" Width="100" HorizontalAlignment="Left" Margin="0,0,0,12"/>
+                        
+                        <TextBlock Text="Allowed seconds in blocked domain (Work phase):" Margin="0,0,0,4"/>
+                        <TextBox Text="{Binding BlockedAllowedSeconds, UpdateSourceTrigger=PropertyChanged}" Width="100" HorizontalAlignment="Left" Margin="0,0,0,12"/>
+                        
+                        <TextBlock Text="Distracted reminder threshold (minutes):" Margin="0,0,0,4"/>
+                        <TextBox Text="{Binding DistractedRemindMinutes, UpdateSourceTrigger=PropertyChanged}" Width="100" HorizontalAlignment="Left"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- Domain Blocklist -->
+                <GroupBox Header="Domain Blocklist" Padding="12" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="Domains to limit during Work phase:" Margin="0,0,0,8" TextWrapping="Wrap"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <ListBox x:Name="DomainListBox" Grid.Column="0" 
+                                     ItemsSource="{Binding DomainBlocklist}" 
+                                     SelectedItem="{Binding SelectedDomain}"
+                                     Height="150" Margin="0,0,8,0"/>
+                            
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <Button Content="Add" Width="80" Margin="0,0,0,8" Click="AddDomain_Click"/>
+                                <Button Content="Remove" Width="80" Click="RemoveDomain_Click"/>
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock Text="(Default domains cannot be removed)" 
+                                   FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" 
+                                   Margin="0,4,0,0"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- App Allowlist -->
+                <GroupBox Header="App Allowlist" Padding="12" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="Allowed apps (won't count as distracted):" Margin="0,0,0,8" TextWrapping="Wrap"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <ListBox x:Name="AppListBox" Grid.Column="0" 
+                                     ItemsSource="{Binding AppAllowlist}"
+                                     SelectedItem="{Binding SelectedApp}"
+                                     Height="150" Margin="0,0,8,0"/>
+                            
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <Button Content="Add" Width="80" Margin="0,0,0,8" Click="AddApp_Click"/>
+                                <Button Content="Remove" Width="80" Click="RemoveApp_Click"/>
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock Text="(Default apps cannot be removed)" 
+                                   FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" 
+                                   Margin="0,4,0,0"/>
+                    </StackPanel>
+                </GroupBox>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Save Button -->
+        <Button Grid.Row="2" Content="Save" Width="100" Height="36" HorizontalAlignment="Right" 
+                Background="{StaticResource AccentBrush}" Foreground="White" 
+                FontWeight="SemiBold" Click="SaveButton_Click"/>
+    </Grid>
+</Window>
