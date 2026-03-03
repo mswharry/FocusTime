@@ -28,6 +28,7 @@ public class MainViewModel : INotifyPropertyChanged
     private int _sessionDistractedSeconds = 0;
     private int _sessionFocusedSeconds = 0;
     private int _continuousDistractedSeconds = 0;
+    private int _continuousFocusedSeconds = 0;
     private DateTime? _lastDistractedReminderTime;
     private string _currentForegroundApp = string.Empty;
 
@@ -220,6 +221,7 @@ public class MainViewModel : INotifyPropertyChanged
         _sessionFocusedSeconds = 0;
         _sessionDistractedSeconds = 0;
         _continuousDistractedSeconds = 0;
+        _continuousFocusedSeconds = 0;
         _lastDistractedReminderTime = null;
         _currentSession = null;
         DistractionEvents.Clear();
@@ -319,12 +321,19 @@ public class MainViewModel : INotifyPropertyChanged
             if (isFocused)
             {
                 _sessionFocusedSeconds++;
-                _continuousDistractedSeconds = 0;
+                _continuousFocusedSeconds++;
+                
+                // Only reset distraction counter after 30 seconds of continuous focus (grace period)
+                if (_continuousFocusedSeconds >= 30)
+                {
+                    _continuousDistractedSeconds = 0;
+                }
             }
             else
             {
                 _sessionDistractedSeconds++;
                 _continuousDistractedSeconds++;
+                _continuousFocusedSeconds = 0;
 
                 // Track distraction event (every 60 seconds)
                 if (_sessionDistractedSeconds % 60 == 0)
@@ -352,7 +361,7 @@ public class MainViewModel : INotifyPropertyChanged
                 if (_continuousDistractedSeconds >= _appData.Settings.DistractedRemindMinutes * 60)
                 {
                     if (_lastDistractedReminderTime == null || 
-                        (DateTime.Now - _lastDistractedReminderTime.Value).TotalMinutes >= 5)
+                        (DateTime.Now - _lastDistractedReminderTime.Value).TotalMinutes >= _appData.Settings.DistractedRemindMinutes)
                     {
                         _notificationService.ShowDistractedReminder(ActiveTaskTitle);
                         _lastDistractedReminderTime = DateTime.Now;
