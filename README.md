@@ -384,7 +384,14 @@ TimerEngine.SessionCompleted event
 
 ## 🤝 Đóng Góp
 
-Project này được tạo cho mục đích học tập (VibeCode thesis). Mọi đóng góp đều được chào đón:
+Project này được phát triển trong khuôn khổ **VibeCode thesis** - nghiên cứu về AI-assisted software development. 
+
+VibeCode là phương pháp phát triển phần mềm kết hợp:
+- 🤖 AI Tools (GPT, GitHub Copilot) cho brainstorming và code generation
+- 👨‍💻 Human expertise cho architecture decisions và quality control
+- ⚡ Rapid iteration với AI feedback loops
+
+Mọi đóng góp đều được chào đón:
 
 1. Fork repo
 2. Create feature branch: `git checkout -b feature/AmazingFeature`
@@ -398,9 +405,35 @@ MIT License - xem file [LICENSE](LICENSE)
 
 ## 🙏 Credits
 
+### Development
 - Phát triển bởi: [mswharry](https://github.com/mswharry)
 - VibeCode thesis project
 - Built with: .NET 8, WPF, WebView2
+
+### VibeCode - AI-Assisted Development Tools
+
+Project này được phát triển với sự hỗ trợ của VibeCode methodology và các công cụ AI:
+
+**🎨 Ideation & Planning**
+- **ChatGPT (GPT-4)**: Brainstorming ý tưởng, hỗ trợ thiết kế architecture, design pattern selection
+- Feature planning và requirements analysis
+- Technical documentation structure
+
+**💻 Code Generation & Development**
+- **GitHub Copilot** (Claude Sonnet 4.5): Primary coding assistant
+  - Code generation và completion
+  - Refactoring và optimization suggestions
+  - Bug detection và fixes
+  - XAML/C# best practices
+  - Real-time code improvements
+
+**🔄 Development Workflow**
+1. **Idea Phase**: GPT-4 brainstorming → Architecture design
+2. **Implementation**: GitHub Copilot (Claude Sonnet 4.5) → Code generation
+3. **Iteration**: Continuous refinement với AI feedback
+4. **Testing**: Manual testing + AI-suggested test cases
+
+> 💡 **VibeCode Philosophy**: Kết hợp sức mạnh của AI tools với human creativity để tạo ra sản phẩm chất lượng cao trong thời gian ngắn.
 
 ## 📞 Liên Hệ
 
