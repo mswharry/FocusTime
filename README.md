@@ -8,13 +8,32 @@
 
 ## ✨ Tính Năng Chính
 
-- **⏱️ Smart Timer**: Tự động chia Work/Break theo thời lượng (profiles: 20/5, 25/5, 50/10)
-- **🌐 Focus Browser**: WebView2 tích hợp với tracking và chặn domain
-- **👀 Distraction Tracking**: Theo dõi app/domain đang dùng, có allowlist thông minh
+### Core Features
+- **⏱️ Smart Timer**: Tự động chia Work/Break theo thời lượng với 5 profiles khác nhau
+  - Pure focus (≤15 min): Không có break, tập trung thuần túy
+  - Short sessions (≤30 min): 10m work / 2m break
+  - Standard (≤60 min): 20m work / 5m break
+  - Pomodoro (≤120 min): 25m work / 5m break
+  - Deep work (>120 min): 50m work / 10m break
+- **🎯 Flexible Presets**: 12 preset thời lượng từ 10-240 phút (10, 15, 20, 30, 45, 60, 90, 120, 150, 180, 210, 240)
+- **🌐 Focus Browser**: WebView2 tích hợp với multi-tabs, navigation, và tracking real-time
+- **👀 Smart Distraction Tracking**: 
+  - Theo dõi app/domain với allowlist thông minh
+  - Grace period 30s: không reset counter khi focus ngắn
+  - Distraction tooltip với breakdown chi tiết (10 events gần nhất)
+  - Configurable reminder interval (không còn hardcode)
 - **☕ Break Management**: BreakBank điều chỉnh break dựa trên thời gian distracted
 - **📊 Daily Goals & Streaks**: Theo dõi tiến độ với mục tiêu hàng ngày và chuỗi ngày
-- **🔔 Notifications**: Nhắc nhở break và cảnh báo distraction
-- **🔒 Local-First**: Dữ liệu lưu local JSON, không cần cloud/login
+- **🔔 Smart Notifications**: 
+  - Break reminders với popup always-on-top
+  - Distraction alerts với custom interval
+  - Auto-close sau 5 giây
+- **⚙️ Interactive Settings UI**: 
+  - Add/Remove domains từ blocklist trực tiếp trong app
+  - Add/Remove apps từ allowlist với validation
+  - Protected defaults không thể xóa
+  - Real-time configuration updates
+- **🔒 Local-First**: Dữ liệu lưu local JSON, không cần cloud/login, 100% privacy
 
 ## 📋 Yêu Cầu Hệ Thống
 
@@ -74,12 +93,15 @@ dotnet publish src/FocusTime.App -c Release -r win-x64 --self-contained true -p:
 
 ### 1️⃣ Bắt Đầu Session
 
-- Chọn thời lượng tổng session: **45, 60, 90, 120, 150, 180, 210, 240 phút**
-- App tự động chia thành Work/Break theo profile:
-  - ≤60 min: 20 phút Work, 5 phút Break
-  - ≤120 min: 25 phút Work, 5 phút Break
-  - >120 min: 50 phút Work, 10 phút Break
+- Chọn thời lượng tổng session: **10, 15, 20, 30, 45, 60, 90, 120, 150, 180, 210, 240 phút**
+- App tự động chia thành Work/Break theo 5 profiles thông minh:
+  - **≤15 min**: Pure focus (không có break) - dành cho sprint ngắn
+  - **≤30 min**: 10 phút Work, 2 phút Break - quick sessions
+  - **≤60 min**: 20 phút Work, 5 phút Break - standard sessions
+  - **≤120 min**: 25 phút Work, 5 phút Break - Pomodoro style
+  - **>120 min**: 50 phút Work, 10 phút Break - deep work mode
 - Nhấn **Start** để bắt đầu
+- Xem tooltip **Distracted** để theo dõi breakdown chi tiết các distraction
 
 ### 2️⃣ Quản Lý Tasks
 
@@ -107,23 +129,33 @@ dotnet publish src/FocusTime.App -c Release -r win-x64 --self-contained true -p:
 - Có thể **Skip Break** nếu muốn tiếp tục
 - BreakBank: nếu distracted nhiều, break time sẽ giảm
 
-### 6️⃣ History & Settings
+### 6️⃣ Settings & Configuration
 
-- **History**: Xem sessions cũ, top distracting domains/apps
-- **Settings**: Chỉnh daily goal, thresholds, xem blocklist/allowlist
+- **Settings Window**: Click nút Settings để mở cửa sổ cấu hình
+- **Domain Blocklist**: 
+  - Xem danh sách domains bị chặn
+  - **Add**: Thêm domain mới vào blocklist
+  - **Remove**: Xóa domain (trừ defaults được bảo vệ)
+- **App Allowlist**: 
+  - Xem danh sách apps được phép (không tính distracted)
+  - **Add**: Thêm process name mới (VD: `chrome.exe`, `firefox.exe`)
+  - **Remove**: Xóa app (trừ defaults)
+- **Distraction Reminder**: Chỉnh số phút để nhắc khi distracted liên tục
+- **Daily Goal**: Điều chỉnh mục tiêu focus mỗi ngày
 
 ## ⚙️ Cấu Hình Mặc Định
 
 | Setting | Value | Mô Tả |
 |---------|-------|-------|
 | Daily Goal | 120 phút | Mục tiêu tập trung mỗi ngày |
-| Blocked Domains | facebook.com, youtube.com, tiktok.com, instagram.com, reddit.com | Các domain bị giới hạn |
+| Blocked Domains | facebook.com, youtube.com, tiktok.com, instagram.com, reddit.com | Các domain bị giới hạn (có thể thêm/xóa trong Settings) |
 | Domain Timeout | 10 phút | Thời gian timeout khi vượt ngưỡng |
 | Allowed Seconds | 90s | Thời gian cho phép trên blocked domain mỗi Work phase |
-| Distraction Reminder | 5 phút | Nhắc nhở khi distracted liên tục |
-| Allowed Apps | Code.exe, devenv.exe, WINWORD.EXE, EXCEL.EXE, POWERPNT.EXE, notepad.exe, obsidian.exe | Apps không tính distracted |
+| Distraction Reminder | 5 phút | Nhắc nhở khi distracted liên tục (configurable) |
+| Grace Period | 30 giây | Thời gian focus liên tục cần để reset distraction counter |
+| Allowed Apps | Code.exe, devenv.exe, WINWORD.EXE, EXCEL.EXE, POWERPNT.EXE, notepad.exe, obsidian.exe, vmware.exe | Apps không tính distracted (có thể thêm/xóa trong Settings) |
 
-> 💡 **Tip**: Chỉnh settings trong app hoặc edit trực tiếp file `%APPDATA%\FocusTime\data.json`
+> 💡 **Tip**: Chỉnh settings trong app (Settings window) hoặc edit trực tiếp file `%APPDATA%\FocusTime\data.json`
 
 ## 📂 Cấu Trúc Project
 
@@ -144,12 +176,197 @@ FocusTime/
 └── README.md                   # This file
 ```
 
+## 🏗️ Kiến Trúc Ứng Dụng
+
+### Layer Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         PRESENTATION LAYER                       │
+│                     (FocusTime.App - WPF/XAML)                  │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
+│  │ MainWindow   │  │ Settings     │  │ History      │         │
+│  │   .xaml      │  │  Window      │  │  Window      │         │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘         │
+│         │                  │                  │                  │
+│  ┌──────▼──────────────────▼──────────────────▼───────┐        │
+│  │            ViewModels (MVVM Pattern)                │        │
+│  │  - MainViewModel: Session & timer orchestration    │        │
+│  │  - SettingsViewModel: Configuration management     │        │
+│  │  - HistoryViewModel: Analytics & logs display      │        │
+│  └────────────────────────┬────────────────────────────┘        │
+│                           │                                      │
+│  ┌────────────────────────▼───────────────────────────┐         │
+│  │         UI Services (Platform-specific)            │         │
+│  │  - BrowserService: WebView2 wrapper & navigation   │         │
+│  │  - NotificationPopup: Always-on-top alerts         │         │
+│  └────────────────────────┬────────────────────────────┘        │
+└───────────────────────────┼──────────────────────────────────────┘
+                            │
+                            │ Dependency Injection
+                            │
+┌───────────────────────────▼──────────────────────────────────────┐
+│                      BUSINESS LOGIC LAYER                         │
+│                   (FocusTime.Core - Pure C#)                     │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌────────────────────────────────────────────────────────────┐ │
+│  │                    Core Services                            │ │
+│  │  ┌───────────────┐  ┌────────────────┐  ┌───────────────┐ │ │
+│  │  │ TimerEngine   │  │ScheduleBuilder │  │AnalyticsService│ │ │
+│  │  │ - Tick (1s)   │  │ - Work/Break   │  │ - Sessions    │ │ │
+│  │  │ - Phases      │  │ - 5 Profiles   │  │ - Statistics  │ │ │
+│  │  └───────────────┘  └────────────────┘  └───────────────┘ │ │
+│  │                                                              │ │
+│  │  ┌───────────────────┐  ┌──────────────────────────────┐  │ │
+│  │  │ ForegroundApp     │  │ DistractionPolicyEngine      │  │ │
+│  │  │ Tracker           │  │ - Domain blocklist check     │  │ │
+│  │  │ - Win32 API       │  │ - App allowlist validation   │  │ │
+│  │  │ - 1s polling      │  │ - Grace period (30s)         │  │ │
+│  │  └───────────────────┘  └──────────────────────────────┘  │ │
+│  │                                                              │ │
+│  │  ┌───────────────────┐  ┌──────────────────────────────┐  │ │
+│  │  │ NotificationSvc   │  │ PersistenceService           │  │ │
+│  │  │ - Event-based     │  │ - JSON serialization         │  │ │
+│  │  │ - Popup triggers  │  │ - Auto-backup on error       │  │ │
+│  │  └───────────────────┘  └──────────────────────────────┘  │ │
+│  └────────────────────────────────────────────────────────────┘ │
+│                                                                   │
+│  ┌────────────────────────────────────────────────────────────┐ │
+│  │                      Domain Models                          │ │
+│  │  - AppData: Root data container                             │ │
+│  │  - Settings: User preferences                               │ │
+│  │  - SessionLog: Session history records                      │ │
+│  │  - TaskItem: Task management                                │ │
+│  └────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+                            │
+                            │ File I/O
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                         DATA LAYER                               │
+│                  %APPDATA%\FocusTime\data.json                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Key Design Patterns
+
+1. **MVVM (Model-View-ViewModel)**
+   - Clean separation: Views (XAML) ↔ ViewModels ↔ Models
+   - Data binding cho reactive UI updates
+   - Commands pattern cho user interactions
+
+2. **Observer Pattern**
+   - `TimerEngine.Tick` event → MainViewModel subscribes
+   - `ForegroundAppTracker.ForegroundAppChanged` → Tracking logic
+   - `NotificationService.NotificationRequested` → Popup display
+
+3. **Strategy Pattern**
+   - `ScheduleBuilder`: 5 profiles dựa trên session length
+   - `DistractionPolicyEngine`: Domain vs App detection strategies
+
+4. **Dependency Injection**
+   - Services injected vào ViewModels
+   - Loose coupling giữa layers
+   - Easy testing & mocking
+
+### Data Flow Example: Session Lifecycle
+
+```
+User clicks Start
+    │
+    ▼
+MainViewModel.StartSession()
+    │
+    ├──▶ ScheduleBuilder.Build(duration)
+    │       └──▶ Returns List<Phase> (Work/Break schedule)
+    │
+    ├──▶ TimerEngine.Start(schedule)
+    │       └──▶ Starts 1-second timer
+    │
+    └──▶ ForegroundAppTracker.Start()
+            └──▶ Polls active window every 1s
+    
+Every second:
+    │
+    ├──▶ TimerEngine.Tick event
+    │       └──▶ MainViewModel: Update timer display
+    │
+    └──▶ ForegroundAppTracker.ForegroundAppChanged
+            │
+            ▼
+        MainViewModel.OnTimerTick()
+            │
+            ├──▶ Check if focused (DistractionPolicyEngine)
+            │       ├─ Browser? → Domain blocklist check
+            │       └─ Other app? → Allowlist check
+            │
+            ├──▶ Update counters (_sessionFocusedSeconds, _continuousDistractedSeconds)
+            │
+            ├──▶ Grace period logic (30s continuous focus)
+            │
+            └──▶ Check distraction reminder threshold
+                    └──▶ NotificationService.ShowDistractedReminder()
+                            └──▶ NotificationPopup.Show()
+
+Session completes:
+    │
+    ▼
+TimerEngine.SessionCompleted event
+    │
+    └──▶ MainViewModel: Save SessionLog
+            └──▶ PersistenceService.Save(AppData)
+                    └──▶ Write to %APPDATA%\FocusTime\data.json
+```
+
+### Technology Stack
+
+| Component | Technology | Purpose |
+|-----------|-----------|---------|
+| UI Framework | WPF (Windows Presentation Foundation) | Desktop UI with XAML |
+| Browser Engine | WebView2 (Chromium) | Embedded browser tabs |
+| Win32 API | `GetForegroundWindow()` | Detect active application |
+| Timer | `System.Timers.Timer` | 1-second tick engine |
+| Data Storage | JSON + `System.Text.Json` | Local persistence |
+| Architecture | MVVM + Services | Clean separation of concerns |
+| Target Framework | .NET 8.0 | Modern C# features |
+
 ## 💾 Dữ Liệu & Privacy
 
 - **Vị trí**: `%APPDATA%\FocusTime\data.json`
 - **Format**: JSON thuần, dễ đọc/backup
 - **Privacy**: 100% local, không gửi data ra ngoài
 - **Backup**: Tự động backup khi detect JSON lỗi
+
+## 🆕 Recent Updates & Enhancements
+
+### v1.2.0 - Smart Distraction Tracking (March 2026)
+**Features:**
+- ✅ **Grace Period Tracking**: Counter distraction chỉ reset sau 30 giây focus liên tục (không còn reset ngay lập tức)
+- ✅ **Configurable Reminders**: Fix hardcoded 5-minute interval → theo setting user
+- ✅ **Distraction Tooltip**: Hover để xem breakdown chi tiết 10 distraction events gần nhất
+- ✅ **Short Session Presets**: Thêm 10, 15, 20, 30 phút cho quick focus sprints
+- ✅ **Dynamic Schedule Profiles**: 5 work/break profiles từ pure-focus đến deep-work mode
+- ✅ **Interactive Settings UI**: 
+  - Add/Remove domains & apps trực tiếp trong Settings window
+  - Protected defaults (không thể xóa các domain/app quan trọng)
+  - Real-time validation và feedback
+
+**Bug Fixes:**
+- 🐛 Fixed: Timer hiển thị sai duration cho preset mới
+- 🐛 Fixed: Distraction reminder hardcoded interval
+- 🐛 Fixed: Counter reset quá nhanh khi focus ngắn
+
+**Performance:**
+- ⚡ Optimized: Distraction event tracking (chỉ log mỗi 60s thay vì mỗi giây)
+- ⚡ Improved: Tooltip generation với caching
+
+### v1.1.0 - Foundation Release
+- Initial production-ready MVP
+- Core timer engine với break scheduling
+- Browser integration với WebView2
+- Local JSON persistence
+- Distraction tracking cơ bản
 
 ## 🐛 Troubleshooting
 
