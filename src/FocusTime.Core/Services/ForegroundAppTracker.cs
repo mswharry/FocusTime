@@ -6,10 +6,11 @@ namespace FocusTime.Core.Services;
 /// <summary>
 /// Tracks the foreground application on Windows
 /// </summary>
-public class ForegroundAppTracker
+public class ForegroundAppTracker : IDisposable
 {
     private System.Timers.Timer? _pollTimer;
     private string _lastProcessName = string.Empty;
+    private bool _disposed = false;
 
     public event EventHandler<string>? ForegroundAppChanged;
     public string CurrentProcessName => _lastProcessName;
@@ -39,12 +40,38 @@ public class ForegroundAppTracker
 
     private void OnPollTick(object? sender, ElapsedEventArgs e)
     {
-        string processName = Win32Native.GetForegroundProcessName();
-        
-        if (!string.IsNullOrEmpty(processName) && processName != _lastProcessName)
+        try
         {
-            _lastProcessName = processName;
-            ForegroundAppChanged?.Invoke(this, processName);
+            string processName = Win32Native.GetForegroundProcessName();
+            
+            if (!string.IsNullOrEmpty(processName) && processName != _lastProcessName)
+            {
+                _lastProcessName = processName;
+                ForegroundAppChanged?.Invoke(this, processName);
+            }
         }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[ForegroundAppTracker] Poll failed: {ex.Message}");
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
+            return;
+
+        if (disposing)
+        {
+            Stop();
+        }
+
+        _disposed = true;
     }
 }

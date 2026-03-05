@@ -1,0 +1,26 @@
+Implement “Distraction Prompt” đúng spec.
+
+Trigger:
+- Trong Work phase, nếu foreground app != FocusTime và process không nằm trong allowlist → hiển thị prompt.
+- Prompt có 2 phần:
+  1) Mục đích: Work / Needed / Break / Lạc
+  2) Thời lượng: 1m / 3m / 5m / 10m
+
+Behavior:
+- Nếu Work hoặc Needed: tạo một “grace window” (allowedUntil = now + duration). Trong grace window:
+  - không tính distracted (hoặc nếu bạn đã có logic, giữ nhất quán: MVP = không tính).
+- Nếu Break hoặc Lạc: tính distracted ngay.
+- Khi grace window hết:
+  - nếu vẫn đang ở app đó (và không allowlist) → bắt đầu tính distracted + trigger remind.
+- Đảm bảo prompt không spam liên tục:
+  - Trong grace window không pop lại.
+  - Nếu user dismiss prompt, coi như “Lạc” và bắt đầu tính distracted.
+
+UI:
+- Dialog WPF đơn giản, non-intrusive. Không cần fancy.
+- Copywriting tiếng Việt thân thiện, trung tính.
+
+Output:
+- Các class/fields thêm vào (DistractionPromptService, AllowedUntil, LastPromptAt…).
+- Code path: ForegroundAppTracker event -> policy -> UI prompt.
+- Manual test: alt-tab vào app lạ trong work, chọn Work 3m, check counter; hết 3m thì bắt đầu tính.

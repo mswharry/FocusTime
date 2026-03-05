@@ -47,11 +47,15 @@ public class PersistenceService
                 return CreateDefaultAppData();
             }
 
+            // Validate and clean up settings
+            appData.Settings?.Validate();
+
             return appData;
         }
-        catch
+        catch (Exception ex)
         {
             // Backup and reset on error
+            System.Diagnostics.Debug.WriteLine($"[PersistenceService] Load failed: {ex.Message}");
             BackupFile();
             return CreateDefaultAppData();
         }
@@ -64,12 +68,15 @@ public class PersistenceService
     {
         try
         {
+            // Validate settings before saving
+            appData.Settings?.Validate();
+
             string json = JsonSerializer.Serialize(appData, _jsonOptions);
             File.WriteAllText(_dataFilePath, json);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Failed to save data: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"[PersistenceService] Save failed: {ex.Message}");
         }
     }
 

@@ -59,6 +59,79 @@ public class AnalyticsService
     }
 
     /// <summary>
+    /// Calculate longest streak ever achieved
+    /// </summary>
+    public int CalculateLongestStreak()
+    {
+        if (_appData.Days.Count == 0)
+            return 0;
+
+        int longestStreak = 0;
+        int currentStreak = 0;
+
+        // Get all dates sorted (handle multiple formats)
+        var sortedDates = _appData.Days.Keys
+            .Select(k =>
+            {
+                // Try primary format: yyyyMMdd
+                if (DateTime.TryParseExact(k, "yyyyMMdd", null, System.Globalization.DateTimeStyles.None, out var date))
+                    return (DateTime?)date;
+                
+                // Try alternate format: yyyy-MM-dd
+                if (DateTime.TryParseExact(k, "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.None, out date))
+                    return (DateTime?)date;
+                
+                // Try general parse
+                if (DateTime.TryParse(k, out date))
+                    return (DateTime?)date;
+                
+                return null; // Invalid format, skip
+            })
+            .Where(d => d.HasValue)
+            .Select(d => d!.Value)
+            .OrderBy(d => d)
+            .ToList();
+
+        DateTime? lastDate = null;
+
+        foreach (var date in sortedDates)
+        {
+            var dateKey = DateKeyHelper.GetDateKey(date);
+            
+            // Handle case where key might not exist after format conversion
+            if (!_appData.Days.ContainsKey(dateKey))
+                continue;
+                
+            var focusedMinutes = _appData.Days[dateKey].TotalFocusedSeconds / 60;
+            bool goalAchieved = focusedMinutes >= _appData.Settings.DailyGoalMinutes;
+
+            if (goalAchieved)
+            {
+                // Check if consecutive day
+                if (lastDate == null || (date - lastDate.Value).TotalDays == 1)
+                {
+                    currentStreak++;
+                    longestStreak = Math.Max(longestStreak, currentStreak);
+                }
+                else
+                {
+                    // Gap in streak, reset
+                    currentStreak = 1;
+                }
+                lastDate = date;
+            }
+            else
+            {
+                // Goal not achieved, reset streak
+                currentStreak = 0;
+                lastDate = null;
+            }
+        }
+
+        return longestStreak;
+    }
+
+    /// <summary>
     /// Get trend for last 7 days
     /// </summary>
     public List<DayTrend> GetLast7DaysTrend()

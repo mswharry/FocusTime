@@ -8,12 +8,30 @@ namespace FocusTime.Core.Services;
 public class DistractionPolicyEngine
 {
     private Settings _settings;
-    private Dictionary<string, DateTime> _domainTimeouts = new Dictionary<string, DateTime>();
     private Dictionary<string, int> _domainSecondsInCurrentWork = new Dictionary<string, int>();
 
     public DistractionPolicyEngine(Settings settings)
     {
         _settings = settings;
+        // Clean up expired timeouts on init
+        CleanupExpiredTimeouts();
+    }
+
+    /// <summary>
+    /// Clean up expired timeouts from settings
+    /// </summary>
+    private void CleanupExpiredTimeouts()
+    {
+        var now = DateTime.UtcNow;
+        var expiredKeys = _settings.DomainTimeouts
+            .Where(kvp => kvp.Value <= now)
+            .Select(kvp => kvp.Key)
+            .ToList();
+
+        foreach (var key in expiredKeys)
+        {
+            _settings.DomainTimeouts.Remove(key);
+        }
     }
 
     /// <summary>
@@ -22,17 +40,17 @@ public class DistractionPolicyEngine
     public bool IsDomainBlocked(string domain, out DateTime? timeoutUntil)
     {
         timeoutUntil = null;
-        if (_domainTimeouts.ContainsKey(domain))
+        if (_settings.DomainTimeouts.ContainsKey(domain))
         {
-            var until = _domainTimeouts[domain];
-            if (DateTime.Now < until)
+            var until = _settings.DomainTimeouts[domain];
+            if (DateTime.UtcNow < until)
             {
                 timeoutUntil = until;
                 return true;
             }
             else
             {
-                _domainTimeouts.Remove(domain);
+                _settings.DomainTimeouts.Remove(domain);
             }
         }
         return false;
@@ -60,8 +78,8 @@ public class DistractionPolicyEngine
         // Check if exceeded threshold
         if (_domainSecondsInCurrentWork[domain] > _settings.BlockedAllowedSecondsInWork)
         {
-            // Apply timeout
-            _domainTimeouts[domain] = DateTime.Now.AddMinutes(_settings.DomainTimeoutMinutes);
+            // Apply timeout (store in UTC)
+            _settings.DomainTimeouts[domain] = DateTime.UtcNow.AddMinutes(_settings.DomainTimeoutMinutes);
             return true;
         }
 
@@ -77,11 +95,55 @@ public class DistractionPolicyEngine
     }
 
     /// <summary>
-    /// Check if an app process is in the allowlist
+    /// Check if an app process is in the allowlist (case-insensitive, handles paths)
     /// </summary>
     public bool IsAppAllowed(string processName)
     {
-        return _settings.AppAllowlistProcessNames.Contains(processName);
+        if (string.IsNullOrEmpty(processName))
+            return false;
+
+        // Extract filename from full path if needed
+        string filename = System.IO.Path.GetFileName(processName);
+        
+        return _settings.AppAllowlistProcessNames
+            .Any(allowed => filename.Contains(allowed, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Check if an app is neutral (system utility, not focused but not distracted)
+    /// </summary>
+    public bool IsAppNeutral(string processName)
+    {
+        if (string.IsNullOrEmpty(processName))
+            return false;
+
+        string filename = System.IO.Path.GetFileName(processName);
+        
+        return _settings.AppNeutralProcessNames
+            .Any(neutral => filename.Contains(neutral, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Check if a domain is in the allowlist (work-related)
+    /// </summary>
+    public bool IsDomainAllowed(string domain)
+    {
+        if (string.IsNullOrEmpty(domain))
+            return false;
+
+        return _settings.DomainAllowlist
+            .Any(allowed => domain.Contains(allowed, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Check if a domain is neutral (empty, local, transitioning)
+    /// </summary>
+    public bool IsDomainNeutral(string domain)
+    {
+        return string.IsNullOrEmpty(domain) || 
+               domain == "local" || 
+               domain == "about:blank" ||
+               domain.StartsWith("file://");
     }
 
     /// <summary>

@@ -1,0 +1,17 @@
+Refactor MainViewModel để giảm “god object” nhưng không đổi behavior.
+
+Target structure:
+- SessionViewModel: timer state (phase, remaining, start/pause/skip)
+- BrowserViewModel: tabs, url bar, domain status, block page state
+- TrackingViewModel: focused/distracted, tooltip breakdown
+- TasksViewModel: task CRUD, active task, outcomes
+- MainViewModel chỉ giữ wiring/orchestration + shared services
+
+Ràng buộc:
+- Không đổi UI layout lớn.
+- Không đổi model JSON schema (trừ khi bắt buộc, và phải migrate).
+
+Output:
+- File tree sau refactor.
+- Danh sách rename/move.
+- Build pass.

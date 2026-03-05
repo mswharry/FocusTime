@@ -1,0 +1,16 @@
+Implement IDisposable đúng chuẩn cho các service và VM có resource/timer/event subscription.
+
+Phạm vi:
+- TimerEngine: dispose timer, stop, unsubscribe.
+- ForegroundAppTracker: dispose timer, stop, unsubscribe.
+- MainViewModel (hoặc MainWindow): unsubscribe khỏi events của TimerEngine/Trackers/BrowserService.
+- BrowserService: nếu đang giữ WebView2 references/tab list, đảm bảo Dispose đúng khi đóng tab/đóng app.
+
+Yêu cầu:
+- Pattern: bool _disposed + Dispose(true) + GC.SuppressFinalize.
+- Khi app đóng: gọi Dispose chain (App.OnExit hoặc MainWindow.Closed).
+- Không để timer vẫn chạy nền sau khi window đóng.
+
+Output:
+- Danh sách file thay đổi + chỗ gọi Dispose.
+- Checklist test: mở app → start session → đóng app → kiểm tra process không còn chạy; mở lại không bị event fire đôi.

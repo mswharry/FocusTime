@@ -1,0 +1,35 @@
+Thực hiện QUICK WINS theo các mục sau, sửa trực tiếp trong repo:
+
+(1) Thread-safety:
+- Tất cả update UI-bound properties từ timer callbacks hoặc tracker callbacks phải marshal về UI thread.
+- Dùng Dispatcher (Application.Current.Dispatcher) hoặc capture SynchronizationContext trên UI thread và post về đó.
+- Không được update INotifyPropertyChanged properties từ background thread.
+
+(2) Error handling tối thiểu:
+- Thêm try/catch cho ForegroundAppTracker polling tick (GetForegroundProcessName).
+- Thêm try/catch cho PersistenceService load/save và BrowserService navigation failures.
+- Không crash app; log bằng Debug/Trace; UI chỉ cần status message nhẹ (nếu đã có status bar).
+
+(10) Settings validation:
+- Validate các setting:
+  DailyGoalMinutes: 10..480
+  DomainTimeoutMinutes: 5..120
+  BlockedAllowedSecondsInWork: 0..300
+  DistractedRemindMinutes: 1..30
+  Allowlist process name: không rỗng
+- Nếu đang dùng SettingsViewModel, implement validation bằng INotifyDataErrorInfo hoặc IDataErrorInfo, hoặc clamp values trước khi save.
+
+(7) Persist timeout state:
+- Domain timeouts hiện in-memory phải persist vào JSON (Settings hoặc DayLog/SessionLog).
+- Khi load app, cleanup expired timeouts.
+- Restart app không được “bypass” timeout.
+
+(11) Longest streak:
+- AnalyticsService bổ sung LongestStreak.
+- UI: hiển thị thêm “Longest streak: X” (chỉ text, không cần UI fancy).
+
+Yêu cầu output:
+- Liệt kê file nào đã sửa và vì sao.
+- Với mỗi thay đổi quan trọng, trích đoạn code liên quan (diff hoặc snippet).
+- Cuối cùng đưa checklist manual test cho 5 mục trên.
+- Đảm bảo `dotnet build` pass.

@@ -6,6 +6,7 @@ using Microsoft.Web.WebView2.Wpf;
 using FocusTime.App.ViewModels;
 using FocusTime.App.Services;
 using FocusTime.App.Models;
+using System.Diagnostics;
 
 namespace FocusTime.App.Views;
 
@@ -16,14 +17,64 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
-        InitializeComponent();
-        
-        _viewModel = new MainViewModel();
-        _browserService = new BrowserService();
-        
-        DataContext = _viewModel;
+        try
+        {
+            InitializeComponent();
+            
+            _viewModel = new MainViewModel();
+            _browserService = new BrowserService();
+            
+            DataContext = _viewModel;
 
-        Loaded += OnLoaded;
+            Loaded += OnLoaded;
+            Closed += OnClosed;
+            StateChanged += OnStateChanged;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"MainWindow constructor error: {ex.Message}\n{ex.StackTrace}");
+            MessageBox.Show($"MainWindow error: {ex.Message}\n\n{ex.StackTrace}", "FocusTime Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            throw;
+        }
+    }
+
+    private void OnClosed(object? sender, EventArgs e)
+    {
+        _viewModel.Dispose();
+    }
+
+    private void OnStateChanged(object? sender, EventArgs e)
+    {
+        if (WindowState == WindowState.Minimized)
+        {
+            // Auto-pause session when minimized
+            if (_viewModel.IsSessionActive && _viewModel.PauseCommand.CanExecute(null))
+            {
+                _viewModel.PauseCommand.Execute(null);
+                _viewModel.NotificationService.ShowNotification(
+                    "Đã tạm dừng", 
+                    "Đã tạm dừng vì app bị thu nhỏ. Mở lại để tiếp tục.",
+                    playSound: false
+                );
+            }
+        }
+        else if (WindowState == WindowState.Normal)
+        {
+            // Prompt to resume when restored
+            if (_viewModel.ResumeCommand.CanExecute(null))
+            {
+                var result = MessageBox.Show(
+                    "Tiếp tục session?",
+                    "FocusTime",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    _viewModel.ResumeCommand.Execute(null);
+                }
+            }
+        }
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
@@ -42,6 +93,8 @@ public partial class MainWindow : Window
         _viewModel.OpenHistoryRequested += OnOpenHistory;
         _viewModel.OpenSettingsRequested += OnOpenSettings;
         _viewModel.TaskEditRequested += OnTaskEditRequested;
+        _viewModel.SessionRecoveryAvailable += OnSessionRecoveryAvailable;
+        _viewModel.DistractionPromptRequested += OnDistractionPromptRequested;
 
         // Wire up notification service
         _viewModel.NotificationService.NotificationRequested += OnNotificationRequested;
@@ -305,5 +358,31 @@ public partial class MainWindow : Window
         }
 
         e.Handled = true; // Prevent tab click event
+    }
+
+    private void OnSessionRecoveryAvailable(object? sender, FocusTime.Core.Models.SessionSnapshot snapshot)
+    {
+        var dialog = new SessionRecoveryDialog(snapshot);
+        var result = dialog.ShowDialog();
+
+        if (result == true && dialog.ShouldResume)
+        {
+            _viewModel.RestoreSession(snapshot);
+        }
+        else
+        {
+            _viewModel.DiscardSnapshot();
+        }
+    }
+
+    private void OnDistractionPromptRequested(object? sender, string appOrDomain)
+    {
+        var dialog = new DistractionPromptDialog(appOrDomain);
+        var result = dialog.ShowDialog();
+
+        if (result == true && dialog.Result != null)
+        {
+            _viewModel.HandleDistractionPromptResult(dialog.Result);
+        }
     }
 }

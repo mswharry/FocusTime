@@ -1,0 +1,277 @@
+BIG UPDATE 1.5 - CRITICAL BUG FIXES & LOGIC REFINEMENT
+
+Bạn là Senior C# WPF Engineer. Sau khi hoàn thành Big Update 1 và viết tests, phát hiện các BUG NGHIÊM TRỌNG trong logic nghiệp vụ cần fix NGAY.
+
+PHẠM VI: Fix 6 critical issues theo thứ tự ưu tiên
+
+═══════════════════════════════════════════════════════════════
+
+🔥 PRIORITY 0 - CRITICAL BUGS (PHẢI FIX NGAY)
+
+1) DOMAIN TRACKING LOGIC - SAI HOÀN TOÀN
+   Location: MainViewModel.cs:533-561 (OnTimerTick)
+   
+   Problem:
+   - Tất cả domain KHÔNG trong blocklist = focused (SAI!)
+   - Chỉ 5 domain block mặc định → 99% website khác = "focused"
+   - Không track domain seconds vào _sessionDistractedSeconds
+   - App không chặn doom scrolling như mục đích ban đầu
+   
+   Solution:
+   - Implement 3-tier domain classification:
+     * ALLOWLIST: Work domains (github, stackoverflow, docs) → focused
+     * BLOCKLIST: Distraction domains (social media) → distracted + timeout
+     * NEUTRAL: Tất cả khác → DISTRACTED (default deny)
+   
+   - Track domain usage properly:
+     * isFocused = isInAllowlist || inGraceWindow
+     * NOT focused = blocked OR neutral
+   
+   - Add Settings.DomainAllowlist với defaults:
+     github.com, stackoverflow.com, docs.microsoft.com, developer.mozilla.org
+   
+   Files to change:
+   - Settings.cs: Add DomainAllowlist property + defaults
+   - MainViewModel.cs:533-561: Rewrite domain tracking logic
+   - SettingsWindow.xaml: Add allowlist editor UI
+   
+   Test impact: Pass existing tests, add new tests for allowlist
+
+═══════════════════════════════════════════════════════════════
+
+2) BREAK BANK - KHÔNG HOẠT ĐỘNG
+   Location: DistractionPolicyEngine.cs:110-116 + MainViewModel.cs
+   
+   Problem:
+   - ComputeBreakBank() method tồn tại NHƯNG không bao giờ được gọi
+   - Break segments chạy full duration từ ScheduleBuilder
+   - Tính năng penalty break không hoạt động
+   
+   Solution:
+   - Add TimerEngine.AdjustCurrentSegmentTime(int seconds) method
+   - Call trong MainViewModel.OnPhaseChanged() khi enter Break:
+     ```csharp
+     if (e.NewPhase == "Break")
+     {
+         int plannedMinutes = _currentSegments[index].Minutes;
+         int distractedMinutes = _sessionDistractedSeconds / 60;
+         int adjustedMinutes = _policyEngine.ComputeBreakBank(plannedMinutes, distractedMinutes);
+         
+         if (adjustedMinutes < plannedMinutes)
+         {
+             _timerEngine.AdjustCurrentSegmentTime(adjustedMinutes * 60);
+             _notificationService.ShowNotification("Break Adjusted", 
+                 $"Break reduced to {adjustedMinutes}m due to {distractedMinutes}m distraction");
+         }
+     }
+     ```
+   
+   Files to change:
+   - TimerEngine.cs: Add AdjustCurrentSegmentTime(int seconds)
+   - MainViewModel.cs:480-500 (OnPhaseChanged): Add break bank logic
+   
+   Test impact: Add test for TimerEngine.AdjustCurrentSegmentTime
+
+═══════════════════════════════════════════════════════════════
+
+⚠️ PRIORITY 1 - HIGH IMPACT ISSUES
+
+3) APP TRACKING IMPROVEMENTS
+   Location: MainViewModel.cs:563-577
+   
+   Problem:
+   - Process name matching không robust (case-sensitive, path issues)
+   - Tất cả app ngoài allowlist = distracted (quá strict)
+   - Không phân biệt productive apps vs system apps
+   
+   Solution:
+   - Case-insensitive process name matching:
+     ```csharp
+     _currentForegroundApp.Contains("Code", StringComparison.OrdinalIgnoreCase)
+     ```
+   
+   - Add neutral apps category: Explorer.exe, Calculator.exe, Taskmgr.exe
+     → Không tính distracted, không tính focused (neutral)
+   
+   - Improve IsAppAllowed() logic:
+     ```csharp
+     public bool IsAppAllowed(string processName)
+     {
+         // Extract filename from full path
+         string filename = Path.GetFileName(processName).ToLowerInvariant();
+         return _settings.AppAllowlistProcessNames
+             .Any(allowed => filename.Contains(allowed.ToLowerInvariant()));
+     }
+     ```
+   
+   Files to change:
+   - DistractionPolicyEngine.cs: Improve IsAppAllowed()
+   - Settings.cs: Add AppNeutralProcessNames list
+   - MainViewModel.cs:563-577: Update app tracking logic
+
+═══════════════════════════════════════════════════════════════
+
+4) SESSION RECOVERY - WORKAROUND LOOP
+   Location: MainViewModel.cs:771-775 (RestoreSession)
+   
+   Problem:
+   - Dùng while loop để fast-forward timer (HACK)
+   - Không set exact remaining time
+   - Comment "This is a workaround"
+   
+   Solution:
+   - Add TimerEngine.SetRemainingTime(int seconds) method:
+     ```csharp
+     public void SetRemainingTime(int seconds)
+     {
+         if (_state != TimerState.Running) return;
+         
+         _remainingSeconds = seconds;
+         _segmentTotalSeconds = seconds;
+         _stopwatch.Restart();
+         OnPropertyChanged(nameof(RemainingSeconds));
+     }
+     ```
+   
+   - Replace workaround loop:
+     ```csharp
+     _timerEngine.SetRemainingTime(snapshot.RemainingSecondsInSegment);
+     ```
+   
+   Files to change:
+   - TimerEngine.cs: Add SetRemainingTime() method
+   - MainViewModel.cs:771-775: Replace loop with method call
+   
+   Test impact: Add test for SetRemainingTime accuracy
+
+═══════════════════════════════════════════════════════════════
+
+⚠️ PRIORITY 2 - UX IMPROVEMENTS
+
+5) GRACE WINDOW PERSISTENCE
+   Location: MainViewModel.cs:488 (OnPhaseChanged)
+   
+   Problem:
+   - Grace windows cleared mỗi Work segment
+   - User phải approve lại app/domain mỗi Work phase
+   - UX experience tệ
+   
+   Solution:
+   - Grace windows persist trong session, chỉ clear khi:
+     * Session end/reset
+     * User manual clear
+     * Grace expiry time reached (đã có)
+   
+   - Remove auto clear:
+     ```csharp
+     else if (e.NewPhase == "Work")
+     {
+         _policyEngine.ResetWorkSegment();
+         // _promptService.ClearGraceWindows(); ← REMOVE THIS
+     }
+     ```
+   
+   - Add clear only in ResetSession() and Dispose()
+   
+   Files to change:
+   - MainViewModel.cs:488: Remove ClearGraceWindows()
+   - MainViewModel.cs:255 (ResetSession): Keep ClearGraceWindows()
+
+═══════════════════════════════════════════════════════════════
+
+6) CONTINUOUS DISTRACTION COUNTER FIX
+   Location: MainViewModel.cs:411-419
+   
+   Problem:
+   - Reset counter sau chỉ 30 giây focus
+   - Reminder không bao giờ fire (cần 5 phút continuous)
+   - User distracted 10m → focus 30s → counter reset
+   
+   Solution:
+   - Require 2 phút focus để reset distraction counter:
+     ```csharp
+     if (_continuousFocusedSeconds >= 120) // 2 minutes
+     {
+         _continuousDistractedSeconds = 0;
+         _lastDistractedReminderTime = null; // Also reset reminder time
+     }
+     ```
+   
+   Files to change:
+   - MainViewModel.cs:411-419: Change threshold 30 → 120
+
+═══════════════════════════════════════════════════════════════
+
+📝 EXECUTION PLAN
+
+Step 1: Fix Domain Tracking (P0-1)
+  - Modify Settings.cs
+  - Rewrite MainViewModel domain logic
+  - Update SettingsWindow UI
+  - Test với real websites
+
+Step 2: Implement Break Bank (P0-2)
+  - Add TimerEngine.AdjustCurrentSegmentTime()
+  - Call trong OnPhaseChanged()
+  - Add notification
+  - Test adjustment
+
+Step 3: Fix App Tracking (P1-3)
+  - Improve IsAppAllowed()
+  - Add neutral apps category
+  - Update MainViewModel logic
+  - Test với các apps thực tế
+
+Step 4: Fix Session Recovery (P1-4)
+  - Add TimerEngine.SetRemainingTime()
+  - Remove workaround loop
+  - Test restore accuracy
+
+Step 5: Grace Window Persistence (P2-5)
+  - Remove auto clear
+  - Test persistence across Work segments
+
+Step 6: Fix Distraction Counter (P2-6)
+  - Change threshold 30s → 120s
+  - Test reminder firing
+
+═══════════════════════════════════════════════════════════════
+
+🧪 TESTING CHECKLIST
+
+After each fix:
+1. Run dotnet test → ensure no regressions
+2. Manual test với app running
+3. Verify logic với debugging
+
+Final validation:
+□ Domain tracking: Visit github.com (focused), facebook.com (blocked), random-site.com (distracted)
+□ Break bank: Distracted 10m trong Work → Break giảm từ 5m xuống 0m
+□ App tracking: Switch to VS Code (focused), Chrome (prompt), Calculator (neutral)
+□ Session recovery: Kill app mid-session → restart → restore → verify time accurate
+□ Grace window: Allow Slack 5m → chuyển Break→Work → vẫn trong grace window
+□ Distraction counter: Distracted 6m → focus 1m → still get reminder
+
+═══════════════════════════════════════════════════════════════
+
+🎯 SUCCESS CRITERIA
+
+- All 47 existing tests pass
+- Add 5+ new tests for new functionality
+- Domain tracking correctly identifies work vs distraction
+- Break bank penalty applies to break segments
+- Session recovery accurate to second
+- Grace windows persist across Work phases
+- Distraction reminder fires after 5+ minutes continuous
+
+═══════════════════════════════════════════════════════════════
+
+BUILD & TEST COMMANDS
+
+dotnet build FocusTime.sln
+dotnet test tests/FocusTime.Tests/FocusTime.Tests.csproj
+dotnet run --project src/FocusTime.App/FocusTime.App.csproj
+
+═══════════════════════════════════════════════════════════════
+
+BẮT ĐẦU với Priority 0-1: Domain Tracking Logic

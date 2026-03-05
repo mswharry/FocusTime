@@ -1,0 +1,25 @@
+Implement Session Recovery (auto-save + resume) cho FocusTime.
+
+Yêu cầu:
+- Trong khi session đang chạy, auto-save trạng thái mỗi 30–60 giây (debounced) vào JSON (trong AppData.Days[date]. hoặc 1 field riêng như AppData.LastSessionSnapshot).
+- Snapshot tối thiểu gồm:
+  SessionId, StartTime, PlannedTotalMinutes
+  CurrentSegmentIndex, Phase, RemainingSecondsInSegment
+  FocusedSeconds, DistractedSeconds
+  ActiveTaskId (hoặc title), tasks snapshot
+  DomainSeconds/AppSeconds hiện tại
+  DomainTimeouts hiện tại (nếu có)
+- Khi app start:
+  - Nếu tìm thấy snapshot chưa kết thúc (EndTime null hoặc flag InProgress) → hỏi user “Resume last session?” (dialog đơn giản Yes/No).
+  - Yes: restore timer/tracking về trạng thái snapshot và tiếp tục.
+  - No: discard snapshot (hoặc mark abandoned).
+
+Ràng buộc:
+- Không cần onboarding.
+- Không cần UI phức tạp: 1 dialog confirm là đủ.
+- Không làm mất dữ liệu cũ; snapshot phải tương thích schemaVersion hiện tại.
+
+Output:
+- File changed list + mô tả data model snapshot.
+- Code snippets restore flow.
+- Manual test checklist (crash simulate: đóng app khi session đang chạy → mở lại).

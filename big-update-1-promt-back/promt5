@@ -1,0 +1,12 @@
+Implement minimize/restore behavior:
+
+Rule:
+- Khi session đang chạy và window bị minimize:
+  - Auto-pause session (timer + tracking) và hiển thị notification/popup: “Đã tạm dừng vì app bị thu nhỏ. Mở lại để tiếp tục.”
+- Khi window restore:
+  - hỏi “Tiếp tục session?” (Yes auto resume / No giữ pause).
+- Không làm phức tạp: chỉ cần hook Window.StateChanged.
+
+Output:
+- File changes (MainWindow.xaml.cs hoặc MainViewModel).
+- Manual test minimize/restore.

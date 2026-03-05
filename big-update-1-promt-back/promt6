@@ -1,0 +1,13 @@
+Fix timer precision theo hướng “elapsed time based”.
+
+Yêu cầu:
+- Không dựa hoàn toàn vào Timer interval 1000ms để trừ 1 giây.
+- Dùng Stopwatch hoặc DateTime:
+  - Khi bắt đầu segment: set segmentEndTime = now + remainingSeconds
+  - Mỗi tick: remaining = max(0, segmentEndTime - now)
+- UI tick có thể 200–500ms hoặc 1s, nhưng remaining tính từ thời gian thực.
+- Ensure pause/resume: khi pause thì lưu remainingSeconds, khi resume thì set new segmentEndTime.
+
+Output:
+- Code update TimerEngine + test logic với pause/resume.
+- Manual test: chạy 10 phút, đối chiếu với clock hệ thống.

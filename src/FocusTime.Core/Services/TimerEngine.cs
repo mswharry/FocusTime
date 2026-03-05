@@ -1,17 +1,20 @@
 using System.Timers;
+using System.Diagnostics;
 
 namespace FocusTime.Core.Services;
 
 /// <summary>
 /// Timer engine with phase management and events
 /// </summary>
-public class TimerEngine
+public class TimerEngine : IDisposable
 {
     private System.Timers.Timer? _timer;
     private List<ScheduleSegment> _segments = new List<ScheduleSegment>();
     private int _currentSegmentIndex = 0;
     private int _remainingSeconds = 0;
+    private DateTime _segmentEndTime;
     private bool _isPaused = false;
+    private bool _disposed = false;
 
     public event EventHandler<PhaseChangedEventArgs>? PhaseChanged;
     public event EventHandler? SegmentCompleted;
@@ -38,7 +41,9 @@ public class TimerEngine
         if (_segments.Count > 0)
         {
             _remainingSeconds = _segments[0].Minutes * 60;
-            _timer = new System.Timers.Timer(1000);
+            _segmentEndTime = DateTime.Now.AddSeconds(_remainingSeconds);
+            
+            _timer = new System.Timers.Timer(500); // Use 500ms interval for more responsive UI
             _timer.Elapsed += OnTimerTick;
             _timer.Start();
 
@@ -55,6 +60,8 @@ public class TimerEngine
         {
             _timer.Stop();
             _isPaused = true;
+            // Save remaining seconds at pause time
+            _remainingSeconds = Math.Max(0, (int)(_segmentEndTime - DateTime.Now).TotalSeconds);
         }
     }
 
@@ -65,6 +72,8 @@ public class TimerEngine
     {
         if (_timer != null && _isPaused)
         {
+            // Recalculate end time based on remaining seconds
+            _segmentEndTime = DateTime.Now.AddSeconds(_remainingSeconds);
             _timer.Start();
             _isPaused = false;
         }
@@ -98,9 +107,40 @@ public class TimerEngine
         }
     }
 
+    /// <summary>
+    /// Adjust the current segment's remaining time (e.g., for break bank penalty)
+    /// </summary>
+    /// <param name="newSeconds">New remaining seconds for current segment</param>
+    public void AdjustCurrentSegmentTime(int newSeconds)
+    {
+        if (_timer == null || _isPaused)
+            return;
+
+        if (newSeconds < 0)
+            newSeconds = 0;
+
+        _remainingSeconds = newSeconds;
+        _segmentEndTime = DateTime.Now.AddSeconds(_remainingSeconds);
+    }
+
+    /// <summary>
+    /// Set exact remaining time for current segment (mainly for session recovery)
+    /// </summary>
+    /// <param name="seconds">Exact remaining seconds</param>
+    public void SetRemainingTime(int seconds)
+    {
+        if (_timer == null)
+            return;
+
+        _remainingSeconds = Math.Max(0, seconds);
+        _segmentEndTime = DateTime.Now.AddSeconds(_remainingSeconds);
+    }
+
     private void OnTimerTick(object? sender, ElapsedEventArgs e)
     {
-        _remainingSeconds--;
+        // Calculate remaining seconds based on actual elapsed time
+        _remainingSeconds = Math.Max(0, (int)(_segmentEndTime - DateTime.Now).TotalSeconds);
+        
         Tick?.Invoke(this, EventArgs.Empty);
 
         if (_remainingSeconds <= 0)
@@ -118,9 +158,29 @@ public class TimerEngine
             {
                 // Move to next segment
                 _remainingSeconds = _segments[_currentSegmentIndex].Minutes * 60;
+                _segmentEndTime = DateTime.Now.AddSeconds(_remainingSeconds);
                 PhaseChanged?.Invoke(this, new PhaseChangedEventArgs(_segments[_currentSegmentIndex].Type));
             }
         }
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
+            return;
+
+        if (disposing)
+        {
+            Stop();
+        }
+
+        _disposed = true;
     }
 }
 
